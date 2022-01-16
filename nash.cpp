@@ -20,7 +20,7 @@ void execute(struct command *cmd) {
 		ERROR("Command '");
 		ERROR(cmd->argv[0]);
 		ERRORLN("' was not found.");
-		shell_prompt(cmd);
+		back_to_prompt(cmd);
 		return;
 	}
 	
@@ -29,6 +29,7 @@ void execute(struct command *cmd) {
 	current.worker = exec->worker;
 	current.status = ALIVE;
 	current.signal = 0;
+	current.starttime = millis();
 }
 
 
@@ -47,10 +48,10 @@ void nash_loop() {
 	if (current.status == ALIVE) {
 		/* Process is running */
 		struct command *cmd = current.command;
-		current.status = current.worker(cmd->argc, cmd->argv, current.signal);
+		current.status = current.worker(cmd->argc, cmd->argv, &current);
 		if (current.status != ALIVE) {
 			/* Process terminated */
-			shell_prompt(current.command);
+			back_to_prompt(current.command);
 		}
 		return;
 	}

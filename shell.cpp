@@ -54,7 +54,7 @@ struct command * newcommand() {
     return cmd;
 }
 
-void shell_prompt(struct command *cmd) {
+void back_to_prompt(struct command *cmd) {
 	if (cmd != NULL) {
 		free(cmd->argv);
 		free(cmd);
@@ -99,6 +99,12 @@ struct command * shell_loop() {
 	/* Escape */
 	else if (in == 27) {
 		/* Do Nothing */
+
+	}
+	/* INTR signal */
+	else if (in == 3) {
+		/* Read signal */
+
 	}
 	/* Line max */
 	else if (bufflen < SERIAL_LINE_SIZE) {
@@ -108,10 +114,6 @@ struct command * shell_loop() {
 		buff[bufflen] = in;
 		bufflen++;
 	}
-		//else if (in == 3) {
-		//	VPRINTLN("^C");
-		//	kill = true;
-		//}
 	return NULL;
 }
 
@@ -120,6 +122,5 @@ void shell_init() {
 	Serial.begin(SERIAL_BAUDRATE);
 	Serial.setTimeout(SERIAL_TIMEOUT);
 	delay(SERIAL_INIT_DELAY);
-	PRINTLN();
 	PRINT_PROMPT();
 }

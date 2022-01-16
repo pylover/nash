@@ -24,5 +24,5 @@ struct command {
 
 struct command * shell_loop();
 void shell_init();
-void shell_prompt(struct command *cmd);
+void back_to_prompt(struct command *cmd);
 #endif

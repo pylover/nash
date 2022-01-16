@@ -13,7 +13,7 @@
 
 typedef unsigned char signal_t;
 
-typedef int(*execloop)(size_t, char **, signal_t);
+typedef int(*execloop)(size_t, char **, struct process*);
 
 struct executable {
     const char *name;
@@ -25,6 +25,7 @@ struct process {
     execloop worker;
     int status;
     signal_t signal;
+    unsigned long starttime;
 };
 
 void nash_init(struct executable *programs);

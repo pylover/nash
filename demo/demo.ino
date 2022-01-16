@@ -1,7 +1,7 @@
 #include "nash.h"
 
 
-int echo(size_t argc, char **argv, signal_t signal) {
+int echo(size_t argc, char **argv, struct process *self) {
 	for (int i = 1; i < argc; i++) {
 		PRINT(argv[i]);
 		if (argc - i > 1) {
@@ -13,9 +13,23 @@ int echo(size_t argc, char **argv, signal_t signal) {
 };
 
 
+int sleep(size_t argc, char **argv, struct process *self) {
+	if (self->signal) {
+		return EXIT_FAILURE;
+	}
+	unsigned long towait = atol(argv[1]) * 1000;
+	unsigned long taken = millis() - self->starttime;
+	if (taken < towait) {
+		delay(100);
+		return ALIVE;
+	}
+	return EXIT_SUCCESS;
+}
+
 static struct executable programs[] = {
 	{"help", nash_help },
 	{"echo", echo },
+	{"sleep", sleep },
 	{ NULL }
 };
 
