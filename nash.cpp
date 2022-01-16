@@ -30,6 +30,7 @@ void execute(struct command *cmd) {
 	current.status = ALIVE;
 	current.signal = 0;
 	current.starttime = millis();
+	current.inlen = 0;
 }
 
 
@@ -119,8 +120,9 @@ void nash_loop() {
 	/* New line */
 	if (signal == SIG_NEWLINE) {
 		if (current.status == ALIVE) {
-			// TODO: handle standard input
-			PRINTLN(line);
+			memcpy(current.input, line, linelen);
+			current.inlen = linelen;
+			current.input[linelen] = NULL;
 		}
 		else if (linelen == 0) {
 			PRINT_PROMPT();

@@ -16,7 +16,9 @@
 
 #define NOSIGNAL     0
 #define SIG_INT      3
+#define SIG_EOF      4
 #define SIG_ESC     27 
+#define SIG_BACKSPACE 127
 #define SIG_NEWLINE SERIAL_EOL
 typedef unsigned char signal_t;
 

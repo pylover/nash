@@ -25,6 +25,11 @@ struct process {
     int status;
     signal_t signal;
     unsigned long starttime;
+    
+    /* Standard input */
+    char input[SERIAL_LINE_SIZE + 1];
+    size_t inlen;
+
 };
 
 void nash_init(struct executable *programs);

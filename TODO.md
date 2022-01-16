@@ -4,3 +4,4 @@ task LED
 signal
 history
 multitask
+$?

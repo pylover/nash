@@ -12,44 +12,43 @@ signal_t shell_readline(char **out, size_t *outlen) {
 		
 	char in = Serial.read();
 	
+	/* Uncomment for debug */
 	//PRINTLN();
 	//PRINTLN(in, DEC);
+
 	/* Enter Key */
-	if (in == SERIAL_EOL) {
+	switch (in) {
+		case SERIAL_EOL:
 #ifdef SERIAL_ECHO
-		PRINTLN();
+			PRINTLN();
 #endif
         
-		*out = buff;
-		*outlen = bufflen;
-		buff[bufflen] = 0;
-		bufflen = 0;
-        return SIG_NEWLINE;
-	}
-	/* Backspace */
-	else if (in == 127) {
-		if (bufflen) {
-		    WRITE("\b \b");
-			bufflen--;
-		}
-	}
-	/* Escape */
-	else if (in == SIG_ESC) {
-		/* Do Nothing */
-		return in;
-	}
-	/* INTR signal */
-	else if (in == SIG_INT) {
-		/* Read signal */
-		return in;
-	}
-	/* Line max */
-	else if (bufflen < SERIAL_LINE_SIZE) {
+			*out = buff;
+			*outlen = bufflen;
+			buff[bufflen] = 0;
+			bufflen = 0;
+        	return SIG_NEWLINE;
+
+		case SIG_BACKSPACE:
+			if (bufflen) {
+			    WRITE("\b \b");
+				bufflen--;
+			}
+			break;
+			
+		case SIG_ESC:
+		case SIG_INT:
+		case SIG_EOF:
+			return in;
+		default:
+			/* Line max */
+			if (bufflen < SERIAL_LINE_SIZE) {
 #ifdef SERIAL_ECHO
-		WRITE(in);
+				WRITE(in);
 #endif
-		buff[bufflen] = in;
-		bufflen++;
+				buff[bufflen] = in;
+				bufflen++;
+			}
 	}
 	return NOSIGNAL;
 }
