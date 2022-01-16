@@ -8,7 +8,7 @@ static size_t bufflen = 0;
 struct command * newcommand() {
     struct command *cmd = malloc(sizeof(struct command));
     if (cmd == NULL) {
-        ERROR("Out of memory");
+        ERRORLN("Out of memory");
         return NULL;
     }
     
@@ -16,18 +16,50 @@ struct command * newcommand() {
 	memcpy(cmd->buff, buff, bufflen);
 	cmd->buff[bufflen] = NULL;
     
-    /* split by first space */
-	cmd->name = cmd->buff;
-    cmd->args = memchr(cmd->buff, ' ', bufflen);
-	cmd->argslen = 0;
-	if (cmd->args != NULL) {
-		cmd->args[0] = NULL;
-		cmd->args++;
-		cmd->argslen = bufflen - (cmd->args - cmd->name);
+    /* Parse arguments */
+	char *argv[SHELL_MAX_ARGS];
+	size_t argc = 0;
+	argv[argc++] = cmd->buff;
+
+	char *cursor = cmd->buff;
+	while (true) {
+		cursor = strchr(cursor, ' ');
+		if (cursor == NULL) {
+			break;
+		}
+		cursor[0] = NULL;
+		cursor++;
+		if (strlen(cursor) == 0) {
+			break;
+		}
+
+		if (argc == SHELL_MAX_ARGS) {
+			ERRORLN("Too many arguments");
+			free(cmd);
+			return NULL;
+		}
+		argv[argc++] = cursor;
 	}
 	
+	cmd->argc = argc;
+	cmd->argv = malloc(sizeof(char*) * argc);
+	if (cmd->argv == NULL) {
+        ERRORLN("Out of memory");
+		free(cmd);
+        return NULL;
+	}
+	
+	memcpy(cmd->argv, argv, sizeof(char*) * argc);
 	bufflen = 0;
     return cmd;
+}
+
+void shell_prompt(struct command *cmd) {
+	if (cmd != NULL) {
+		free(cmd->argv);
+		free(cmd);
+	}
+	PRINT_PROMPT();
 }
 
 struct command * shell_loop() {
@@ -50,7 +82,12 @@ struct command * shell_loop() {
             return NULL;
         }
         
-        return newcommand();
+        struct command * cmd = newcommand();
+		if (cmd == NULL) {
+			PRINT_PROMPT();
+            return NULL;
+		}
+		return cmd;
 	}
 	/* Backspace */
 	else if (in == 127) {
@@ -83,5 +120,6 @@ void shell_init() {
 	Serial.begin(SERIAL_BAUDRATE);
 	Serial.setTimeout(SERIAL_TIMEOUT);
 	delay(SERIAL_INIT_DELAY);
+	PRINTLN();
 	PRINT_PROMPT();
 }

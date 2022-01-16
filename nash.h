@@ -13,7 +13,7 @@
 
 typedef unsigned char signal_t;
 
-typedef int(*execloop)(struct process*);
+typedef int(*execloop)(size_t, char **, signal_t);
 
 struct executable {
     const char *name;

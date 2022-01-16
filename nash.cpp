@@ -10,7 +10,7 @@ void execute(struct command *cmd) {
 	/* Find command */
 	struct executable *exec = programs;
 	while(exec->name != NULL) {
-		if (strcmp(exec->name, cmd->name) == 0) {
+		if (strcmp(exec->name, cmd->argv[0]) == 0) {
 			break;	
 		}
 		exec++;	
@@ -18,9 +18,9 @@ void execute(struct command *cmd) {
 
 	if (exec->name == NULL) {
 		ERROR("Command '");
-		ERROR(cmd->name);
+		ERROR(cmd->argv[0]);
 		ERRORLN("' was not found.");
-		PRINT_PROMPT();
+		shell_prompt(cmd);
 		return;
 	}
 	
@@ -46,11 +46,11 @@ void nash_help() {
 void nash_loop() {
 	if (current.status == ALIVE) {
 		/* Process is running */
-		current.status = current.worker(&current);
+		struct command *cmd = current.command;
+		current.status = current.worker(cmd->argc, cmd->argv, current.signal);
 		if (current.status != ALIVE) {
 			/* Process terminated */
-			free(current.command);
-			PRINT_PROMPT();
+			shell_prompt(current.command);
 		}
 		return;
 	}

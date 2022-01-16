@@ -17,13 +17,12 @@
 
 struct command {
     char buff[SERIAL_LINE_SIZE + 1];
-
-    char *name;
-    char *args;
-    size_t argslen;
+    size_t argc;
+    char **argv;
 };
 
 
 struct command * shell_loop();
 void shell_init();
+void shell_prompt(struct command *cmd);
 #endif
