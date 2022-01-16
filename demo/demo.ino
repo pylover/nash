@@ -6,7 +6,7 @@ int echo(char *args, byte argslen, signal_t sig) {
 };
 
 
-static struct command commands[] = {
+static struct executable programs[] = {
 	{"help", nash_help},
 	{"echo", echo},
 	{"ls", echo},
@@ -16,7 +16,7 @@ static struct command commands[] = {
 };
 
 void setup() {
-	nash_init(commands);
+	nash_init(programs);
 }
 
 void loop() {
