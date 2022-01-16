@@ -36,7 +36,9 @@ struct command * shell_loop() {
 	}
 		
 	char in = Serial.read();
-
+	
+	//PRINTLN();
+	//PRINTLN(in, DEC);
 	/* Enter Key */
 	if (in == SERIAL_EOL) {
 #ifdef SERIAL_ECHO
@@ -44,6 +46,7 @@ struct command * shell_loop() {
 #endif
         
         if (bufflen == 0) {
+			PRINT_PROMPT();
             return NULL;
         }
         
@@ -55,6 +58,10 @@ struct command * shell_loop() {
 		    WRITE("\b \b");
 			bufflen--;
 		}
+	}
+	/* Escape */
+	else if (in == 27) {
+		/* Do Nothing */
 	}
 	/* Line max */
 	else if (bufflen < SERIAL_LINE_SIZE) {

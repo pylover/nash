@@ -6,15 +6,14 @@
 
 
 /* STATUS */
-#define EXIT_SUCCESS   0
 #define EXIT_FAILURE   1
-#define RUNNING       -1
-#define INITIALIZING  -2
+#define EXIT_SUCCESS   0
+#define ALIVE         -1
 
 
 typedef unsigned char signal_t;
 
-typedef int(*execloop)(char *, size_t, signal_t);
+typedef int(*execloop)(struct process*);
 
 struct executable {
     const char *name;
@@ -25,6 +24,7 @@ struct process {
     struct command *command;
     execloop worker;
     int status;
+    signal_t signal;
 };
 
 void nash_init(struct executable *programs);

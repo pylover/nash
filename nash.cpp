@@ -1,63 +1,68 @@
 
 #include "nash.h"
 
-static struct programs *programs;
+static struct executable *programs;
 static struct process current;
 
 
-// void execute(struct process *p) {
-// 
-// 	/* Find command */
-// 	struct command *cmd;
-// 	byte counter = 0;
-// 	do {
-// 		cmd = &commands[counter++];	
-// 		if (strcmp(cmdname, cmd->name) == 0) {
-// 			break;	
-// 		}
-// 	} while(cmd->name != NULL);
-// 
-// 	if (cmd->name == NULL) {
-// 		ERROR("Command '");
-// 		ERROR(cmdname);
-// 		ERRORLN("' was not found.");
-// 		p->status = -1;
-// 		return;
-// 	}
-// 	
-// 	/* Executing */
-// 	p->command = cmd;	
-// }
+void execute(struct command *cmd) {
+
+	/* Find command */
+	struct executable *exec = programs;
+	while(exec->name != NULL) {
+		if (strcmp(exec->name, cmd->name) == 0) {
+			break;	
+		}
+		exec++;	
+	}
+
+	if (exec->name == NULL) {
+		ERROR("Command '");
+		ERROR(cmd->name);
+		ERRORLN("' was not found.");
+		PRINT_PROMPT();
+		return;
+	}
+	
+	/* Executing */
+	current.command = cmd;
+	current.worker = exec->worker;
+	current.status = ALIVE;
+	current.signal = 0;
+}
 
 
-// void nash_help() {
-// 	PRINT("Available Commands: ");
-// 	int counter = 0;
-// 	while (true) {
-// 		struct command cmd = commands[counter++];
-// 		if (cmd.name == NULL) {
-// 			break;
-// 		}
-// 		PRINT(cmd.name);
-// 		PRINT(" ");
-// 	}
-// 	PRINTLN();
-// }
+void nash_help() {
+	struct executable *exec = programs;
+	while(exec->name != NULL) {
+		PRINT(exec->name);
+		PRINT(" ");
+		exec++;	
+	}
+	PRINTLN();
+}
 
 
 void nash_loop() {
+	if (current.status == ALIVE) {
+		/* Process is running */
+		current.status = current.worker(&current);
+		if (current.status != ALIVE) {
+			/* Process terminated */
+			free(current.command);
+			PRINT_PROMPT();
+		}
+		return;
+	}
+
 	struct command * cmd = shell_loop();
-	
 	if (cmd != NULL) {
-		PRINTLN(cmd->name);
-		// TODO: execute
-		free(cmd);
-		PRINT_PROMPT();
+		execute(cmd);
 	}
 }
 
 
-void nash_init(struct executable *programs) {
-	programs = programs;
+void nash_init(struct executable *progs) {
+	programs = progs;
 	shell_init();
 }

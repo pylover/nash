@@ -1,17 +1,15 @@
 #include "nash.h"
 
 
-int echo(char *args, byte argslen, signal_t sig) {
+int echo(struct process *self) {
+	PRINTLN(self->command->args);
 	return EXIT_SUCCESS;
 };
 
 
 static struct executable programs[] = {
-	{"help", nash_help},
-	{"echo", echo},
-	{"ls", echo},
-	{"cat", echo},
-	{"sl", echo},
+	{ "help", nash_help },
+	{ "echo", echo },
 	{ NULL }
 };
 

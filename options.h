@@ -10,7 +10,7 @@
 #define SERIAL_TIMEOUT		100
 #define SERIAL_INIT_DELAY	300
 #define SERIAL_EOL          13
-#define SERIAL_LINE_SIZE    16
+#define SERIAL_LINE_SIZE    64
 
 #define TASK_LED_PIN		13
 
