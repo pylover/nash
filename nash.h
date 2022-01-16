@@ -11,7 +11,6 @@
 #define ALIVE         -1
 
 
-typedef unsigned char signal_t;
 
 typedef int(*execloop)(size_t, char **, struct process*);
 

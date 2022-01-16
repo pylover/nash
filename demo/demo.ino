@@ -14,13 +14,12 @@ int echo(size_t argc, char **argv, struct process *self) {
 
 
 int sleep(size_t argc, char **argv, struct process *self) {
-	if (self->signal) {
+	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
 	unsigned long towait = atol(argv[1]) * 1000;
 	unsigned long taken = millis() - self->starttime;
 	if (taken < towait) {
-		delay(100);
 		return ALIVE;
 	}
 	return EXIT_SUCCESS;

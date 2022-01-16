@@ -5,64 +5,7 @@ static char buff[SERIAL_LINE_SIZE];
 static size_t bufflen = 0;
 
 
-struct command * newcommand() {
-    struct command *cmd = malloc(sizeof(struct command));
-    if (cmd == NULL) {
-        ERRORLN("Out of memory");
-        return NULL;
-    }
-    
-    /* Copy & reset global buffer for future commands */
-	memcpy(cmd->buff, buff, bufflen);
-	cmd->buff[bufflen] = NULL;
-    
-    /* Parse arguments */
-	char *argv[SHELL_MAX_ARGS];
-	size_t argc = 0;
-	argv[argc++] = cmd->buff;
-
-	char *cursor = cmd->buff;
-	while (true) {
-		cursor = strchr(cursor, ' ');
-		if (cursor == NULL) {
-			break;
-		}
-		cursor[0] = NULL;
-		cursor++;
-		if (strlen(cursor) == 0) {
-			break;
-		}
-
-		if (argc == SHELL_MAX_ARGS) {
-			ERRORLN("Too many arguments");
-			free(cmd);
-			return NULL;
-		}
-		argv[argc++] = cursor;
-	}
-	
-	cmd->argc = argc;
-	cmd->argv = malloc(sizeof(char*) * argc);
-	if (cmd->argv == NULL) {
-        ERRORLN("Out of memory");
-		free(cmd);
-        return NULL;
-	}
-	
-	memcpy(cmd->argv, argv, sizeof(char*) * argc);
-	bufflen = 0;
-    return cmd;
-}
-
-void back_to_prompt(struct command *cmd) {
-	if (cmd != NULL) {
-		free(cmd->argv);
-		free(cmd);
-	}
-	PRINT_PROMPT();
-}
-
-struct command * shell_loop() {
+signal_t shell_readline(char **out, size_t *outlen) {
 	if (Serial.available() <= 0) {
 		return NULL;
 	}
@@ -77,17 +20,11 @@ struct command * shell_loop() {
 		PRINTLN();
 #endif
         
-        if (bufflen == 0) {
-			PRINT_PROMPT();
-            return NULL;
-        }
-        
-        struct command * cmd = newcommand();
-		if (cmd == NULL) {
-			PRINT_PROMPT();
-            return NULL;
-		}
-		return cmd;
+		*out = buff;
+		*outlen = bufflen;
+		buff[bufflen] = 0;
+		bufflen = 0;
+        return SIG_NEWLINE;
 	}
 	/* Backspace */
 	else if (in == 127) {
@@ -97,14 +34,14 @@ struct command * shell_loop() {
 		}
 	}
 	/* Escape */
-	else if (in == 27) {
+	else if (in == SIG_ESC) {
 		/* Do Nothing */
-
+		return in;
 	}
 	/* INTR signal */
-	else if (in == 3) {
+	else if (in == SIG_INT) {
 		/* Read signal */
-
+		return in;
 	}
 	/* Line max */
 	else if (bufflen < SERIAL_LINE_SIZE) {
@@ -114,7 +51,7 @@ struct command * shell_loop() {
 		buff[bufflen] = in;
 		bufflen++;
 	}
-	return NULL;
+	return NOSIGNAL;
 }
 
 

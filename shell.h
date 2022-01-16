@@ -14,6 +14,11 @@
 
 #define PRINT_PROMPT() PRINT(PROMPT"$ ")
 
+#define NOSIGNAL     0
+#define SIG_INT      3
+#define SIG_ESC     27 
+#define SIG_NEWLINE SERIAL_EOL
+typedef unsigned char signal_t;
 
 struct command {
     char buff[SERIAL_LINE_SIZE + 1];
@@ -22,7 +27,7 @@ struct command {
 };
 
 
-struct command * shell_loop();
+signal_t shell_readline(char **out, size_t *outlen);
 void shell_init();
 void back_to_prompt(struct command *cmd);
 #endif
