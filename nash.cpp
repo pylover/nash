@@ -116,7 +116,6 @@ void nash_loop() {
 	size_t linelen = 0;
 	signal_t signal = shell_readline(&line, &linelen);
 	
-	
 	/* New line */
 	if (signal == SIG_NEWLINE) {
 		if (current.status == ALIVE) {
