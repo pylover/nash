@@ -31,7 +31,7 @@ make screen
 or
 
 ```bash
-make clean demo upload scrren
+make clean demo upload screen
 ```
 
 ## Example
