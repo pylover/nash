@@ -25,6 +25,7 @@ void execute(struct command *cmd) {
 	}
 	
 	/* Executing */
+	digitalWrite(TASK_LED_PIN, HIGH);
 	current.command = cmd;
 	current.worker = exec->worker;
 	current.status = ALIVE;
@@ -97,6 +98,7 @@ void back_to_prompt(struct command *cmd) {
 		free(cmd->argv);
 		free(cmd);
 	}
+	digitalWrite(TASK_LED_PIN, LOW);
 	PRINT_PROMPT();
 }
 
@@ -146,5 +148,7 @@ void nash_loop() {
 
 void nash_init(struct executable *progs) {
 	programs = progs;
+	pinMode(TASK_LED_PIN, OUTPUT);
+	digitalWrite(TASK_LED_PIN, LOW);
 	shell_init();
 }

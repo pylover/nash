@@ -37,6 +37,10 @@ int echo(size_t argc, char **argv, struct process *self) {
 
 
 int sleep(size_t argc, char **argv, struct process *self) {
+	if (argc != 2) {
+		ERRORLN("Invalid number of argument");
+		return EXIT_FAILURE;
+	}
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
