@@ -1,4 +1,3 @@
-
 #include "nash.h"
 
 /* Executables, provided by user via init() */
@@ -8,7 +7,7 @@ static struct executable *programs;
 static struct process current;
 
 /* User input buffer */
-static char buff[SERIAL_LINE_SIZE];
+static char buff[NASH_LINE_SIZE];
 static size_t bufflen = 0;
 
 static void 
@@ -17,12 +16,11 @@ back_to_prompt(struct command *cmd) {
 		free(cmd->argv);
 		free(cmd);
 	}
-	digitalWrite(TASK_LED_PIN, LOW);
+	digitalWrite(NASH_TASK_LED_PIN, LOW);
 	PRINT_PROMPT();
 }
 
 static void execute(struct command *cmd) {
-
 	/* Find command */
 	struct executable *exec = programs;
 	while(exec->name != NULL) {
@@ -41,7 +39,7 @@ static void execute(struct command *cmd) {
 	}
 	
 	/* Executing */
-	digitalWrite(TASK_LED_PIN, HIGH);
+	digitalWrite(NASH_TASK_LED_PIN, HIGH);
 	current.command = cmd;
 	current.worker = exec->worker;
 	current.status = ALIVE;
@@ -52,18 +50,18 @@ static void execute(struct command *cmd) {
 
 static struct command * 
 newcommand(char *line, size_t linelen) {
-    struct command *cmd = malloc(sizeof(struct command));
-    if (cmd == NULL) {
-        ERRORLN("Out of memory");
-        return NULL;
-    }
-    
-    /* Copy buffer */
+	struct command *cmd = malloc(sizeof(struct command));
+	if (cmd == NULL) {
+		ERRORLN("Out of memory");
+		return NULL;
+	}
+	
+	/* Copy buffer */
 	memcpy(cmd->buff, line, linelen);
 	cmd->buff[linelen] = NULL;
-    
-    /* Parse arguments */
-	char *argv[SHELL_MAX_ARGS];
+	
+	/* Parse arguments */
+	char *argv[NASH_MAX_ARGS];
 	size_t argc = 0;
 	argv[argc++] = cmd->buff;
 
@@ -79,7 +77,7 @@ newcommand(char *line, size_t linelen) {
 			break;
 		}
 
-		if (argc == SHELL_MAX_ARGS) {
+		if (argc == NASH_MAX_ARGS) {
 			ERRORLN("Too many arguments");
 			free(cmd);
 			return NULL;
@@ -90,13 +88,13 @@ newcommand(char *line, size_t linelen) {
 	cmd->argc = argc;
 	cmd->argv = malloc(sizeof(char*) * argc);
 	if (cmd->argv == NULL) {
-        ERRORLN("Out of memory");
+		ERRORLN("Out of memory");
 		free(cmd);
-        return NULL;
+		return NULL;
 	}
 	
 	memcpy(cmd->argv, argv, sizeof(char*) * argc);
-    return cmd;
+	return cmd;
 }
 
 static signal_t 
@@ -115,19 +113,19 @@ shell_readline(char **out, size_t *outlen) {
 		/* Enter Key */
 		case SERIAL_EOL:
 
-#ifdef SERIAL_ECHO
+#if SERIAL_ECHO == ON
 			PRINTLN();
 #endif
-        
+		
 			*out = buff;
 			*outlen = bufflen;
 			buff[bufflen] = 0;
 			bufflen = 0;
-        	return SIG_NEWLINE;
+			return SIG_NEWLINE;
 
 		case SIG_BACKSPACE:
 			if (bufflen) {
-			    WRITE("\b \b");
+				WRITE("\b \b");
 				bufflen--;
 			}
 			break;
@@ -141,8 +139,8 @@ shell_readline(char **out, size_t *outlen) {
 		/* Normal characters */
 		default:
 			/* Line max */
-			if (bufflen < SERIAL_LINE_SIZE) {
-#ifdef SERIAL_ECHO
+			if (bufflen < NASH_LINE_SIZE) {
+#if SERIAL_ECHO == ON
 				WRITE(in);
 #endif
 				buff[bufflen] = in;
@@ -185,7 +183,7 @@ nash_loop() {
 			struct command * cmd = newcommand(line, linelen);	
 			if (cmd == NULL) {
 				PRINT_PROMPT();
-        	    return NULL;
+				return NULL;
 			}
 			else {
 				execute(cmd);
@@ -206,12 +204,10 @@ void nash_init(struct executable *progs) {
 	
 	/* UART setup */
 	Serial.begin(SERIAL_BAUDRATE);
-	Serial.setTimeout(SERIAL_TIMEOUT);
-	delay(SERIAL_INIT_DELAY);
 	
 	/* GPIO */
-	pinMode(TASK_LED_PIN, OUTPUT);
-	digitalWrite(TASK_LED_PIN, LOW);
+	pinMode(NASH_TASK_LED_PIN, OUTPUT);
+	digitalWrite(NASH_TASK_LED_PIN, LOW);
 
 	/* Initial Prompt */
 	PRINT_PROMPT();
@@ -225,4 +221,28 @@ void nash_help() {
 		exec++;	
 	}
 	PRINTLN();
+}
+
+
+/* Report available memory */
+#ifdef __arm__
+	// should use uinstd.h to define sbrk but Due causes a conflict
+	extern "C" char* sbrk(int incr);
+#else 
+	extern char *__brkval;
+#endif
+
+int freeMemory() {
+	char top;
+#ifdef __arm__
+	return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+	return &top - __brkval;
+#else
+	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif
+}
+
+void nash_free() {
+	PRINTLN(freeMemory());
 }
