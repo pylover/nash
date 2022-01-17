@@ -2,6 +2,40 @@
 A simple *nix-like shell for Arduino.
 
 
+```bash
+Sketch uses 4400 bytes (13%) of program storage space. Maximum is 32256 bytes.
+Global variables use 490 bytes (23%) of dynamic memory, leaving 1558 bytes for local variables. Maximum is 2048 bytes.
+```
+
+## Compile and run demo
+
+You need an arduino uno connected to your Ubuntu machine.
+
+Install screen using `apt install screen`.
+Install [arduino-cli](https://github.com/arduino/arduino-cli), then:
+
+### Initialize your arduino-cli environment:
+
+```bash
+make env
+```
+
+### Compile and upload the sketch
+
+```bash
+make demo 
+make upload 
+make screen
+```
+
+or
+
+```bash
+make clean demo upload scrren
+```
+
+## Example
+
 ```C++
 #include <nash.h>
 
