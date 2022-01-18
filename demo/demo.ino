@@ -32,8 +32,7 @@ int sleep(size_t argc, char **argv, struct process *self) {
 
 int cat(size_t argc, char **argv, struct process *self) {
 	if (argc > 1) {
-		ERRORLN("Invalid number of arguments");
-		nash_print_usage(self->executable);
+		nash_print_usage(self->executable, true);
 		return EXIT_FAILURE;
 	}
 	if (self->signal == SIG_INT) {

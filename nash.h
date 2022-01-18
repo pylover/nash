@@ -100,5 +100,5 @@ void nash_init(struct executable *programs);
 void nash_loop();
 void nash_help();
 void nash_free();
-void nash_print_usage(struct executable *exec);
+void nash_print_usage(struct executable *exec, bool error);
 #endif

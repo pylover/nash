@@ -42,7 +42,7 @@ static void execute(struct command *cmd) {
 	if ((exec->usage != NULL) && (cmd->argc == 2) && 
 			((strcmp(cmd->argv[1], "-h") == 0) || 
 			 (strcmp(cmd->argv[1], "--help") == 0))) {
-		nash_print_usage(exec);
+		nash_print_usage(exec, false);
 		back_to_prompt(cmd);
 		return;
 	}
@@ -256,7 +256,10 @@ void nash_free() {
 	PRINTLN(freeMemory());
 }
 
-void nash_print_usage(struct executable *exec) {
+void nash_print_usage(struct executable *exec, bool error) {
+	if (error) {
+		ERRORLN("Invalid number of arguments.");
+	}
 	PRINT("Usage: ");
 	PRINT(exec->name);
 	PRINT(" ");
