@@ -257,6 +257,7 @@ void nash_free() {
 }
 
 void nash_print_usage(struct executable *exec) {
+	PRINT("Usage: ");
 	PRINT(exec->name);
 	PRINT(" ");
 	PRINTLN(exec->usage);
