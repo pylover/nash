@@ -37,7 +37,8 @@ make clean demo upload screen
 ## Example
 
 ```C++
-#include <nash.h>
+#include "nash.h"
+
 
 int echo(size_t argc, char **argv, struct process *self) {
 	for (int i = 1; i < argc; i++) {
@@ -52,6 +53,10 @@ int echo(size_t argc, char **argv, struct process *self) {
 
 
 int sleep(size_t argc, char **argv, struct process *self) {
+	if (argc != 2) {
+		ERRORLN("Invalid number of arguments");
+		return EXIT_FAILURE;
+	}
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
@@ -63,7 +68,13 @@ int sleep(size_t argc, char **argv, struct process *self) {
 	return EXIT_SUCCESS;
 }
 
+
 int cat(size_t argc, char **argv, struct process *self) {
+	if (argc > 1) {
+		ERRORLN("Invalid number of arguments");
+		nash_print_usage(self->executable);
+		return EXIT_FAILURE;
+	}
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
@@ -79,17 +90,19 @@ int cat(size_t argc, char **argv, struct process *self) {
 
 
 static struct executable programs[] = {
-	{"help", nash_help },
-	{"echo", echo },
-	{"sleep", sleep },
-	{"cat", cat },
-	{"free", free },
-	{ NULL }
+	{"help", NULL, nash_help},
+	{"free", NULL, nash_free},
+	{"echo", "[STRING]...", echo},
+	{"sleep", "NUMBER", sleep},
+	{"cat", NULL, cat},
+	{NULL, NULL, NULL}
 };
+
 
 void setup() {
 	nash_init(programs);
 }
+
 
 void loop() {
 	nash_loop();	

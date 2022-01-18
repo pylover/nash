@@ -77,12 +77,14 @@ struct command {
 typedef int(*execloop)(size_t, char **, struct process*);
 struct executable {
 	const char *name;
+    const char *usage;
 	execloop worker;
 };
 
 /* Process */
 struct process {
 	struct command *command;
+    struct executable *executable;
 	execloop worker;
 	int status;
 	signal_t signal;
@@ -98,4 +100,5 @@ void nash_init(struct executable *programs);
 void nash_loop();
 void nash_help();
 void nash_free();
+void nash_print_usage(struct executable *exec);
 #endif

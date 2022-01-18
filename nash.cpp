@@ -38,9 +38,18 @@ static void execute(struct command *cmd) {
 		return;
 	}
 	
+	/* Check for -h/--help */
+	if ((exec->usage != NULL) && (cmd->argc == 2) && 
+			((strcmp(cmd->argv[1], "-h") == 0) || 
+			 (strcmp(cmd->argv[1], "--help") == 0))) {
+		nash_print_usage(exec);
+		back_to_prompt(cmd);
+		return;
+	}
 	/* Executing */
 	digitalWrite(NASH_TASK_LED_PIN, HIGH);
 	current.command = cmd;
+	current.executable = exec;
 	current.worker = exec->worker;
 	current.status = ALIVE;
 	current.signal = 0;
@@ -245,4 +254,10 @@ int freeMemory() {
 
 void nash_free() {
 	PRINTLN(freeMemory());
+}
+
+void nash_print_usage(struct executable *exec) {
+	PRINT(exec->name);
+	PRINT(" ");
+	PRINTLN(exec->usage);
 }

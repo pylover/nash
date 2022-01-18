@@ -15,7 +15,7 @@ int echo(size_t argc, char **argv, struct process *self) {
 
 int sleep(size_t argc, char **argv, struct process *self) {
 	if (argc != 2) {
-		ERRORLN("Invalid number of argument");
+		ERRORLN("Invalid number of arguments");
 		return EXIT_FAILURE;
 	}
 	if (self->signal == SIG_INT) {
@@ -29,7 +29,13 @@ int sleep(size_t argc, char **argv, struct process *self) {
 	return EXIT_SUCCESS;
 }
 
+
 int cat(size_t argc, char **argv, struct process *self) {
+	if (argc > 1) {
+		ERRORLN("Invalid number of arguments");
+		nash_print_usage(self->executable);
+		return EXIT_FAILURE;
+	}
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
@@ -43,18 +49,21 @@ int cat(size_t argc, char **argv, struct process *self) {
 	return ALIVE;
 }
 
+
 static struct executable programs[] = {
-	{"help", nash_help },
-	{"free", nash_free },
-	{"echo", echo },
-	{"sleep", sleep },
-	{"cat", cat },
-	{ NULL }
+	{"help", NULL, nash_help},
+	{"free", NULL, nash_free},
+	{"echo", "[STRING]...", echo},
+	{"sleep", "NUMBER", sleep},
+	{"cat", NULL, cat},
+	{NULL, NULL, NULL}
 };
+
 
 void setup() {
 	nash_init(programs);
 }
+
 
 void loop() {
 	nash_loop();	
