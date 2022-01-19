@@ -35,7 +35,7 @@ extern char *__brkval;
 #define SIG_BACKSPACE 127
 #define SIG_NEWLINE SERIAL_EOL
 
-/* Maximum number of command line arguments including the command itself. */
+/* Maximum number of command line arguments.  */
 #define NASH_MAX_ARGS 16
 
 /* Maximum line size */
@@ -78,6 +78,8 @@ public:
     /* Executable */
     typedef struct executable {
     	const char *name;
+        const uint8_t minArgs;
+        const uint8_t maxArgs;
         const char *usage;
         int(*func)(uint8_t, char **, Process*);
     } Executable;

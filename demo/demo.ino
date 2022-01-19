@@ -17,10 +17,6 @@ int echo(uint8_t argc, char **argv, Nash::Process *self) {
 
 
 int sleep(uint8_t argc, char **argv, Nash::Process *self) {
-	if (argc != 2) {
-		Nash::printUsage(self->executable, true);
-		return EXIT_FAILURE;
-	}
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
@@ -34,10 +30,6 @@ int sleep(uint8_t argc, char **argv, Nash::Process *self) {
 
 
 int cat(uint8_t argc, char **argv, Nash::Process *self) {
-	if (argc > 1) {
-		Nash::printUsage(self->executable, true);
-		return EXIT_FAILURE;
-	}
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
@@ -53,10 +45,10 @@ int cat(uint8_t argc, char **argv, Nash::Process *self) {
 
 
 static Nash::Executable programs[] = {
-	{"free", NULL, printFreeMemory},
-	{"echo", "[STRING]...", echo},
-	{"sleep", "NUMBER", sleep},
-	{"cat", NULL, cat},
+	{"free", 0, 0, NULL, printFreeMemory},
+	{"echo", 0, NASH_MAX_ARGS, "[STRING]...", echo},
+	{"sleep", 1, 1, "NUMBER", sleep},
+	{"cat", 0, 0, NULL, cat},
 	{NULL}
 };
 

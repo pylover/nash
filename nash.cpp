@@ -152,11 +152,13 @@ Nash::_newCommand(const char *line, uint8_t linelen) {
 	}
 	
 	/* Copy buffer */
+	// TODO: allocate cmd->buff with linelen - strlen(command name)
+	// TODO: point argv[0] to executable->name to save memory
 	memcpy(cmd->buff, line, linelen);
 	cmd->buff[linelen] = NULL;
 	
-	/* Parse arguments */
-	char *argv[NASH_MAX_ARGS];
+	/* Parse arguments, +1 for the command itself */
+	char *argv[NASH_MAX_ARGS + 1];
 	uint8_t argc = 0;
 	argv[argc++] = cmd->buff;
 
@@ -172,7 +174,7 @@ Nash::_newCommand(const char *line, uint8_t linelen) {
 			break;
 		}
 
-		if (argc == NASH_MAX_ARGS) {
+		if (argc == (NASH_MAX_ARGS + 1)) {
 			ERRORLN("Too many arguments");
 			free(cmd);
 			return NULL;
@@ -216,6 +218,15 @@ Nash::_execute(Command *cmd) {
 		ERROR("Command '");
 		ERROR(cmd->argv[0]);
 		ERRORLN("' was not found.");
+		_printPrompt(cmd);
+		return;
+	}
+	
+	/* Executable found */
+	/* Check for min max arguments */
+	uint8_t argc = cmd->argc - 1;
+	if ((argc < exec->minArgs) || (argc > exec->maxArgs)) {
+		Nash::printUsage(exec, true);
 		_printPrompt(cmd);
 		return;
 	}
