@@ -1,7 +1,7 @@
 #include "nash.h"
 
 
-int echo(size_t argc, char **argv, struct process *self) {
+int echo(uint8_t argc, char **argv, Nash::Process *self) {
 	for (int i = 1; i < argc; i++) {
 		PRINT(argv[i]);
 		if (argc - i > 1) {
@@ -13,9 +13,9 @@ int echo(size_t argc, char **argv, struct process *self) {
 };
 
 
-int sleep(size_t argc, char **argv, struct process *self) {
+int sleep(uint8_t argc, char **argv, Nash::Process *self) {
 	if (argc != 2) {
-		ERRORLN("Invalid number of arguments");
+		Nash::printUsage(self->executable, true);
 		return EXIT_FAILURE;
 	}
 	if (self->signal == SIG_INT) {
@@ -30,9 +30,9 @@ int sleep(size_t argc, char **argv, struct process *self) {
 }
 
 
-int cat(size_t argc, char **argv, struct process *self) {
+int cat(uint8_t argc, char **argv, Nash::Process *self) {
 	if (argc > 1) {
-		nash_print_usage(self->executable, true);
+		Nash::printUsage(self->executable, true);
 		return EXIT_FAILURE;
 	}
 	if (self->signal == SIG_INT) {
@@ -49,9 +49,8 @@ int cat(size_t argc, char **argv, struct process *self) {
 }
 
 
-static struct executable programs[] = {
-	{"help", NULL, nash_help},
-	{"free", NULL, nash_free},
+static Nash::Executable programs[] = {
+	{"free", NULL, printFreeMemory},
 	{"echo", "[STRING]...", echo},
 	{"sleep", "NUMBER", sleep},
 	{"cat", NULL, cat},
@@ -59,11 +58,15 @@ static struct executable programs[] = {
 };
 
 
+Nash shell(programs);
+
+
 void setup() {
-	nash_init(programs);
+	Serial.begin(115200);
+	shell.init();
 }
 
 
 void loop() {
-	nash_loop();	
+	shell.loop();
 }

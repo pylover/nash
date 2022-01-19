@@ -1,4 +1,4 @@
-PORT = /dev/ttyUSB0
+PORT = /dev/ttyACM0
 BAUDRATE = 115200
 PACKAGER = arduino
 ARCH = avr

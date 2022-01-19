@@ -1,65 +1,160 @@
 #include "nash.h"
 
-/* Executables, provided by user via init() */
-static struct executable *programs;
 
-/* Current running process */
-static struct process current;
-
-/* User input buffer */
-static char buff[NASH_LINE_SIZE];
-static size_t bufflen = 0;
-
-static void 
-back_to_prompt(struct command *cmd) {
-	if (cmd != NULL) {
-		free(cmd->argv);
-		free(cmd);
-	}
-	digitalWrite(NASH_TASK_LED_PIN, LOW);
-	PRINT_PROMPT();
+Nash::Nash(
+        Executable *programs,
+        const char * prompt,
+        uint8_t eol,
+        bool echo,
+        uint8_t busyLED
+    ) {
+	_programs = programs;
+	_prompt = prompt;
+	_echo = echo;
+	_busyLED = busyLED;	
 }
 
-static void execute(struct command *cmd) {
-	/* Find command */
-	struct executable *exec = programs;
-	while(exec->name != NULL) {
-		if (strcmp(exec->name, cmd->argv[0]) == 0) {
-			break;	
-		}
-		exec++;	
-	}
 
-	if (exec->name == NULL) {
-		ERROR("Command '");
-		ERROR(cmd->argv[0]);
-		ERRORLN("' was not found.");
-		back_to_prompt(cmd);
-		return;
+void
+Nash::init() {
+
+	/* GPIO */
+	pinMode(_busyLED, OUTPUT);
+	digitalWrite(_busyLED, OFF);
+
+	/* Initial Prompt */
+	_printPrompt();
+}
+
+
+void 
+Nash::_printPrompt() {
+	_printPrompt(NULL);
+}
+
+
+void 
+Nash::_printPrompt(Command *cmd) {
+ 	if (cmd != NULL) {
+ 		free(cmd->argv);
+ 		free(cmd);
+ 	}
+	digitalWrite(_busyLED, OFF);
+	PRINT(_prompt);
+	PRINT("$ ");
+}
+
+
+void
+Nash::loop() {
+	/* Process running task if any. */
+	if (_current.status == ALIVE) {
+		/* Process is running */
+		Command *cmd = _current.command;
+		_current.status = _current.executable->func(
+				cmd->argc, 
+				cmd->argv, 
+				&_current
+			);
+		if (_current.status != ALIVE) {
+			/* Process has been terminated */
+			_printPrompt(_current.command);
+		}
 	}
 	
-	/* Check for -h/--help */
-	if ((exec->usage != NULL) && (cmd->argc == 2) && 
-			((strcmp(cmd->argv[1], "-h") == 0) || 
-			 (strcmp(cmd->argv[1], "--help") == 0))) {
-		nash_print_usage(exec, false);
-		back_to_prompt(cmd);
-		return;
+	/* read a line from input if any. */
+	char *line;
+	uint8_t linelen = 0;
+	signal_t signal = _readline(&line, &linelen);
+	
+	/* New line */
+	if (signal == SIG_NEWLINE) {
+		if (_current.status == ALIVE) {
+			memcpy(_current.input, line, linelen);
+			_current.inlen = linelen;
+			_current.input[linelen] = NULL;
+		}
+		else if (linelen == 0) {
+			_printPrompt();
+		}
+		else {
+			Command * cmd = _newCommand(line, linelen);	
+			if (cmd == NULL) {
+				_printPrompt();
+				return NULL;
+			}
+			else {
+				_execute(cmd);
+			}
+		}
 	}
-	/* Executing */
-	digitalWrite(NASH_TASK_LED_PIN, HIGH);
-	current.command = cmd;
-	current.executable = exec;
-	current.worker = exec->worker;
-	current.status = ALIVE;
-	current.signal = 0;
-	current.starttime = millis();
-	current.inlen = 0;
+
+	/* Signal */
+	else if ((_current.status == ALIVE) && signal) {
+		_current.signal = signal;
+	}
 }
 
-static struct command * 
-newcommand(char *line, size_t linelen) {
-	struct command *cmd = malloc(sizeof(struct command));
+
+Nash::signal_t 
+Nash::_readline(const char **out, uint8_t *outlen) {
+	if (Serial.available() <= 0) {
+		return NULL;
+	}
+		
+	char in = Serial.read();
+	
+	/* Uncomment for debug */
+	//PRINTLN();
+	//PRINTLN(in, DEC);
+
+	switch (in) {
+		/* Enter Key */
+		case SERIAL_EOL:
+		
+			if (_echo) {
+				PRINTLN();
+			}
+		
+			*out = buff;
+			*outlen = bufflen;
+			buff[bufflen] = 0;
+			bufflen = 0;
+			return SIG_NEWLINE;
+
+		case SIG_BACKSPACE:
+			if (bufflen) {
+				if (_echo) {
+					WRITE("\b \b");
+				}
+				bufflen--;
+			}
+			break;
+		
+		/* Signals */
+		case SIG_ESC:
+		case SIG_INT:
+		case SIG_EOF:
+			return in;
+		
+		/* Normal characters */
+		default:
+			/* Line max */
+			if (bufflen < NASH_LINE_SIZE) {
+				if (_echo) {
+					WRITE(in);
+				}
+				buff[bufflen] = in;
+				bufflen++;
+			}
+	}
+	return NOSIGNAL;
+}
+
+
+Nash::Command* 
+Nash::_newCommand(const char *line, uint8_t linelen) {
+	Command *cmd = malloc(sizeof(Command));
 	if (cmd == NULL) {
 		ERRORLN("Out of memory");
 		return NULL;
@@ -71,7 +166,7 @@ newcommand(char *line, size_t linelen) {
 	
 	/* Parse arguments */
 	char *argv[NASH_MAX_ARGS];
-	size_t argc = 0;
+	uint8_t argc = 0;
 	argv[argc++] = cmd->buff;
 
 	char *cursor = cmd->buff;
@@ -106,157 +201,55 @@ newcommand(char *line, size_t linelen) {
 	return cmd;
 }
 
-static signal_t 
-shell_readline(char **out, size_t *outlen) {
-	if (Serial.available() <= 0) {
-		return NULL;
-	}
-		
-	char in = Serial.read();
-	
-	/* Uncomment for debug */
-	//PRINTLN();
-	//PRINTLN(in, DEC);
-
-	switch (in) {
-		/* Enter Key */
-		case SERIAL_EOL:
-
-#if SERIAL_ECHO == ON
-			PRINTLN();
-#endif
-		
-			*out = buff;
-			*outlen = bufflen;
-			buff[bufflen] = 0;
-			bufflen = 0;
-			return SIG_NEWLINE;
-
-		case SIG_BACKSPACE:
-			if (bufflen) {
-				WRITE("\b \b");
-				bufflen--;
-			}
-			break;
-		
-		/* Signals */
-		case SIG_ESC:
-		case SIG_INT:
-		case SIG_EOF:
-			return in;
-		
-		/* Normal characters */
-		default:
-			/* Line max */
-			if (bufflen < NASH_LINE_SIZE) {
-#if SERIAL_ECHO == ON
-				WRITE(in);
-#endif
-				buff[bufflen] = in;
-				bufflen++;
-			}
-	}
-	return NOSIGNAL;
-}
-
 
 void 
-nash_loop() {
-	/* Process running task if any. */
-	if (current.status == ALIVE) {
-		/* Process is running */
-		struct command *cmd = current.command;
-		current.status = current.worker(cmd->argc, cmd->argv, &current);
-		if (current.status != ALIVE) {
-			/* Process has been terminated */
-			back_to_prompt(current.command);
-		}
+Nash::_execute(Command *cmd) {
+
+	/* Check for help command*/
+	if (strcmp("help", cmd->argv[0]) == 0) {
+		_printHelp();
+		_printPrompt(cmd);
+		return;
 	}
 	
-	/* read a line from input if any. */
-	char *line;
-	size_t linelen = 0;
-	signal_t signal = shell_readline(&line, &linelen);
-	
-	/* New line */
-	if (signal == SIG_NEWLINE) {
-		if (current.status == ALIVE) {
-			memcpy(current.input, line, linelen);
-			current.inlen = linelen;
-			current.input[linelen] = NULL;
-		}
-		else if (linelen == 0) {
-			PRINT_PROMPT();
-		}
-		else {
-			struct command * cmd = newcommand(line, linelen);	
-			if (cmd == NULL) {
-				PRINT_PROMPT();
-				return NULL;
-			}
-			else {
-				execute(cmd);
-			}
-		}
-	}
-
-	/* Signal */
-	else if ((current.status == ALIVE) && signal) {
-		current.signal = signal;
-	}
-}
-
-
-void nash_init(struct executable *progs) {
-	/* List of available commands */
-	programs = progs;
-	
-	/* UART setup */
-	Serial.begin(SERIAL_BAUDRATE);
-	
-	/* GPIO */
-	pinMode(NASH_TASK_LED_PIN, OUTPUT);
-	digitalWrite(NASH_TASK_LED_PIN, LOW);
-
-	/* Initial Prompt */
-	PRINT_PROMPT();
-}
-
-void nash_help() {
-	struct executable *exec = programs;
+	/* Find command */
+	Executable *exec = _programs;
 	while(exec->name != NULL) {
-		PRINT(exec->name);
-		PRINT(" ");
+		if (strcmp(exec->name, cmd->argv[0]) == 0) {
+			break;	
+		}
 		exec++;	
 	}
-	PRINTLN();
+
+	if (exec->name == NULL) {
+		ERROR("Command '");
+		ERROR(cmd->argv[0]);
+		ERRORLN("' was not found.");
+		_printPrompt(cmd);
+		return;
+	}
+	
+	/* Check for -h/--help */
+	if ((exec->usage != NULL) && (cmd->argc == 2) && 
+			((strcmp(cmd->argv[1], "-h") == 0) || 
+			 (strcmp(cmd->argv[1], "--help") == 0))) {
+		printUsage(exec, false);
+		_printPrompt(cmd);
+		return;
+	}
+	/* Executing */
+	digitalWrite(_busyLED, ON);
+	_current.command = cmd;
+	_current.executable = exec;
+	_current.status = ALIVE;
+	_current.signal = NOSIGNAL;
+	_current.starttime = millis();
+	_current.inlen = 0;
 }
 
 
-/* Report available memory */
-#ifdef __arm__
-	// should use uinstd.h to define sbrk but Due causes a conflict
-	extern "C" char* sbrk(int incr);
-#else 
-	extern char *__brkval;
-#endif
-
-int freeMemory() {
-	char top;
-#ifdef __arm__
-	return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-	return &top - __brkval;
-#else
-	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif
-}
-
-void nash_free() {
-	PRINTLN(freeMemory());
-}
-
-void nash_print_usage(struct executable *exec, bool error) {
+static void 
+Nash::printUsage(Executable *exec, bool error) {
 	if (error) {
 		ERRORLN("Invalid number of arguments.");
 	}
@@ -264,4 +257,31 @@ void nash_print_usage(struct executable *exec, bool error) {
 	PRINT(exec->name);
 	PRINT(" ");
 	PRINTLN(exec->usage);
+}
+
+ 
+void 
+Nash::_printHelp() {
+	Executable *exec = _programs;
+	while(exec->name != NULL) {
+		PRINT(exec->name);
+		PRINT(" ");
+		exec++;	
+	}
+	PRINTLN();
+}
+ 
+ 
+void 
+printFreeMemory() {
+	int free;
+	char top;
+#ifdef __arm__
+	free = &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+	free = &top - __brkval;
+#else
+	free = __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif
+	PRINTLN(free);
 }
