@@ -83,13 +83,9 @@ public:
     } Executable;
 
     /* Constructor */
-    Nash(
-        Executable *programs,
-        const char * prompt = "nash",
-        uint8_t busyLED = LED_BUILTIN
-    );
+    Nash(const char * prompt = "nash", uint8_t busyLED = LED_BUILTIN);
     
-    void init();
+    void init(Executable *programs);
     void loop();
     static void printUsage(Executable *exec, bool error);
     void _printHelp();

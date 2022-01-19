@@ -1,19 +1,15 @@
 #include "nash.h"
 
 
-Nash::Nash(
-        Executable *programs,
-        const char * prompt,
-        uint8_t busyLED
-    ) {
-	_programs = programs;
+Nash::Nash(const char * prompt, uint8_t busyLED) {
 	_prompt = prompt;
 	_busyLED = busyLED;	
 }
 
 
 void
-Nash::init() {
+Nash::init(Executable *programs) {
+	_programs = programs;
 
 	/* GPIO */
 	pinMode(_busyLED, OUTPUT);

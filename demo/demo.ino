@@ -1,6 +1,9 @@
 #include "nash.h"
 
 
+Nash shell;
+
+
 int echo(uint8_t argc, char **argv, Nash::Process *self) {
 	for (int i = 1; i < argc; i++) {
 		PRINT(argv[i]);
@@ -58,12 +61,9 @@ static Nash::Executable programs[] = {
 };
 
 
-Nash shell(programs);
-
-
 void setup() {
 	Serial.begin(115200);
-	shell.init();
+	shell.init(programs);
 }
 
 
