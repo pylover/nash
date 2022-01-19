@@ -4,12 +4,10 @@
 Nash::Nash(
         Executable *programs,
         const char * prompt,
-        bool echo,
         uint8_t busyLED
     ) {
 	_programs = programs;
 	_prompt = prompt;
-	_echo = echo;
 	_busyLED = busyLED;	
 }
 
@@ -110,22 +108,20 @@ Nash::_readline(const char **out, uint8_t *outlen) {
 	switch (in) {
 		/* Enter Key */
 		case SERIAL_EOL:
-		
-			if (_echo) {
-				PRINTLN();
-			}
-		
+	
+#ifdef SERIAL_ECHO
+			PRINTLN();
+#endif	
 			*out = buff;
 			*outlen = bufflen;
-			buff[bufflen] = 0;
 			bufflen = 0;
 			return SIG_NEWLINE;
 
 		case SIG_BACKSPACE:
 			if (bufflen) {
-				if (_echo) {
-					WRITE("\b \b");
-				}
+#ifdef SERIAL_ECHO
+				WRITE("\b \b");
+#endif	
 				bufflen--;
 			}
 			break;
@@ -140,9 +136,9 @@ Nash::_readline(const char **out, uint8_t *outlen) {
 		default:
 			/* Line max */
 			if (bufflen < NASH_LINE_SIZE) {
-				if (_echo) {
-					WRITE(in);
-				}
+#ifdef SERIAL_ECHO
+				WRITE(in);
+#endif	
 				buff[bufflen] = in;
 				bufflen++;
 			}

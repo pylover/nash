@@ -23,8 +23,9 @@ extern "C" char* sbrk(int incr);
 extern char *__brkval;
 #endif
 
-/* Serial end of line */
+/* Serial Options */
 #define SERIAL_EOL 13
+#define SERIAL_ECHO
 
 /* Signals */
 #define NOSIGNAL 0
@@ -38,7 +39,7 @@ extern char *__brkval;
 #define NASH_MAX_ARGS 16
 
 /* Maximum line size */
-#define NASH_LINE_SIZE 128
+#define NASH_LINE_SIZE 64
 
 
 #define OFF LOW
@@ -85,7 +86,6 @@ public:
     Nash(
         Executable *programs,
         const char * prompt = "nash",
-        bool echo = true,
         uint8_t busyLED = LED_BUILTIN
     );
     
@@ -100,7 +100,6 @@ protected:
     Process _current;
     const char *_prompt;
     uint8_t _busyLED;
-    bool _echo;
 
     /* User input buffer */
     char buff[NASH_LINE_SIZE];
