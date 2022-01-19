@@ -4,7 +4,6 @@
 Nash::Nash(
         Executable *programs,
         const char * prompt,
-        uint8_t eol,
         bool echo,
         uint8_t busyLED
     ) {

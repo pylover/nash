@@ -51,9 +51,9 @@ int cat(uint8_t argc, char **argv, Nash::Process *self) {
 
 static Nash::Executable programs[] = {
 	{"free", NULL, printFreeMemory},
-	{"echo", "[STRING]...", echo},
-	{"sleep", "NUMBER", sleep},
-	{"cat", NULL, cat},
+	//{"echo", "[STRING]...", echo},
+	//{"sleep", "NUMBER", sleep},
+	//{"cat", NULL, cat},
 	{NULL, NULL, NULL}
 };
 
@@ -70,3 +70,6 @@ void setup() {
 void loop() {
 	shell.loop();
 }
+
+// 1199
+// 1281

@@ -85,7 +85,6 @@ public:
     Nash(
         Executable *programs,
         const char * prompt = "nash",
-        uint8_t eol = 13,
         bool echo = true,
         uint8_t busyLED = LED_BUILTIN
     );
