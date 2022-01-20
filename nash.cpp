@@ -19,19 +19,25 @@ Nash::init(Executable *programs) {
 	_printPrompt();
 }
 
-
 void 
-Nash::_printPrompt() {
-	_printPrompt(NULL);
+Nash::_freeProcess() {
+ 	if (_currentProcess == NULL) {
+		return;
+ 	}
+	if (_currentProcess->buff != NULL) {
+		free(_currentProcess->buff);
+	}
+	if (_currentProcess->argv != NULL) {
+		free(_currentProcess->argv);
+	}
+	free(_currentProcess);
+	_currentProcess = NULL;
 }
 
 
 void 
-Nash::_printPrompt(Command *cmd) {
- 	if (cmd != NULL) {
- 		free(cmd->argv);
- 		free(cmd);
- 	}
+Nash::_printPrompt() {
+	_freeProcess();
 	digitalWrite(_busyLED, OFF);
 	PRINT(_prompt);
 	PRINT("$ ");
@@ -41,56 +47,51 @@ Nash::_printPrompt(Command *cmd) {
 void
 Nash::loop() {
 	/* Process running task if any. */
-	if (_current.status == ALIVE) {
+	if (_currentProcess != NULL) {
 		/* Process is running */
-		Command *cmd = _current.command;
-		_current.status = _current.executable->func(
-				cmd->argc, 
-				cmd->argv, 
-				&_current
-			);
-		if (_current.status != ALIVE) {
+		int8_t status = _currentProcess->executable->func(_currentProcess);
+		if (_currentProcess->input != NULL) {
+			free(_currentProcess->input);
+			_currentProcess->input = NULL;
+		}
+		if (status != ALIVE) {
 			/* Process has been terminated */
-			_printPrompt(_current.command);
+			_printPrompt();
 		}
 	}
 	
 	/* read a line from input if any. */
-	char *line;
-	uint8_t linelen = 0;
-	signal_t signal = _readline(&line, &linelen);
-	
-	/* New line */
+	signal_t signal = _readline();
 	if (signal == SIG_NEWLINE) {
-		if (_current.status == ALIVE) {
-			memcpy(_current.input, line, linelen);
-			_current.inlen = linelen;
-			_current.input[linelen] = NULL;
-		}
-		else if (linelen == 0) {
-			_printPrompt();
-		}
-		else {
-			Command * cmd = _newCommand(line, linelen);	
-			if (cmd == NULL) {
-				_printPrompt();
-				return NULL;
+		/* New line */
+		if (bufflen) {
+			if (_currentProcess == NULL) {
+				/* create new proccess */
+				if (!_newProcess()) {
+					_printPrompt();
+				}
 			}
 			else {
-				_execute(cmd);
+				_currentProcess->input = malloc(bufflen + 1);
+				memcpy(_currentProcess->input, buff, bufflen);
+				_currentProcess->input[bufflen] = NULL;
 			}
+			/* we must use the line here and clean the buffer asap */
+			bufflen = 0;
+		}
+		else {
+			_printPrompt();
 		}
 	}
-
 	/* Signal */
-	else if ((_current.status == ALIVE) && signal) {
-		_current.signal = signal;
+	else if ((_currentProcess != NULL) && signal) {
+		_currentProcess->signal = signal;
 	}
 }
 
 
 Nash::signal_t 
-Nash::_readline(const char **out, uint8_t *outlen) {
+Nash::_readline() {
 	if (Serial.available() <= 0) {
 		return NULL;
 	}
@@ -107,10 +108,7 @@ Nash::_readline(const char **out, uint8_t *outlen) {
 	
 #ifdef SERIAL_ECHO
 			PRINTLN();
-#endif	
-			*out = buff;
-			*outlen = bufflen;
-			bufflen = 0;
+#endif
 			return SIG_NEWLINE;
 
 		case SIG_BACKSPACE:
@@ -142,111 +140,141 @@ Nash::_readline(const char **out, uint8_t *outlen) {
 	return NOSIGNAL;
 }
 
-
-Nash::Command* 
-Nash::_newCommand(const char *line, uint8_t linelen) {
-	Command *cmd = malloc(sizeof(Command));
-	if (cmd == NULL) {
-		ERRORLN("Out of memory");
-		return NULL;
+// TODO: Move it to another module
+char *trim(char *str) {
+    char *end;
+    while(isspace((unsigned char)*str)) {
+		str++;
 	}
-	
-	/* Copy buffer */
-	// TODO: allocate cmd->buff with linelen - strlen(command name)
-	// TODO: point argv[0] to executable->name to save memory
-	memcpy(cmd->buff, line, linelen);
-	cmd->buff[linelen] = NULL;
-	
-	/* Parse arguments, +1 for the command itself */
-	char *argv[NASH_MAX_ARGS + 1];
-	uint8_t argc = 0;
-	argv[argc++] = cmd->buff;
 
-	char *cursor = cmd->buff;
-	while (true) {
-		cursor = strchr(cursor, ' ');
-		if (cursor == NULL) {
-			break;
-		}
-		cursor[0] = NULL;
-		cursor++;
-		if (strlen(cursor) == 0) {
-			break;
-		}
+    if(*str == 0) {
+        return str;
+	}
 
-		if (argc == (NASH_MAX_ARGS + 1)) {
-			ERRORLN("Too many arguments");
-			free(cmd);
-			return NULL;
-		}
-		argv[argc++] = cursor;
+    end = str + strlen(str) - 1;
+    while(end > str && isspace((unsigned char)*end)) {
+		end--;
 	}
-	
-	cmd->argc = argc;
-	cmd->argv = malloc(sizeof(char*) * argc);
-	if (cmd->argv == NULL) {
-		ERRORLN("Out of memory");
-		free(cmd);
-		return NULL;
-	}
-	
-	memcpy(cmd->argv, argv, sizeof(char*) * argc);
-	return cmd;
+    end[1] = NULL;
+    return str;
 }
 
-
-void 
-Nash::_execute(Command *cmd) {
-
+bool
+Nash::_newProcess() {
+	/* Copy buffer into the temporay null terminated line */
+	char tmp[bufflen + 1];
+	memcpy(tmp, buff, bufflen);
+	tmp[bufflen] = NULL;
+	
+	/* Trim */
+	char * cmd = trim(tmp);
+	
+	/* Split by first space */
+	char * firstarg = strchr(cmd, ' ');
+	if (firstarg != NULL) {
+		firstarg[0] = NULL;
+		firstarg++;
+	}
+	
+	/* Find executable */
 	/* Check for help command*/
-	if (strcmp("help", cmd->argv[0]) == 0) {
+	if (strcmp("help", cmd) == 0) {
 		_printHelp();
-		_printPrompt(cmd);
-		return;
+		return false;
 	}
 	
 	/* Find command */
 	Executable *exec = _programs;
 	while(exec->name != NULL) {
-		if (strcmp(exec->name, cmd->argv[0]) == 0) {
+		if (strcmp(exec->name, cmd) == 0) {
+			/* Executable found */
 			break;	
 		}
 		exec++;	
 	}
-
+	
 	if (exec->name == NULL) {
 		ERROR("Command '");
-		ERROR(cmd->argv[0]);
+		ERROR(cmd);
 		ERRORLN("' was not found.");
-		_printPrompt(cmd);
-		return;
+		return false;
+	}
+		
+	/* Allocate the process */
+	Process *proc = _currentProcess = malloc(sizeof(Process));
+	proc->executable = exec;
+	proc->signal = NOSIGNAL;
+	proc->input = NULL;
+
+	if (firstarg != NULL) {
+		uint8_t argslen = strlen(firstarg);
+		proc->buff = malloc(argslen + 1);
+		if (proc->buff == NULL) {
+			ERRORLN("Out of memory");
+			return false;
+		}
+		memcpy(proc->buff, firstarg, argslen);
+		proc->buff[argslen] = NULL;
+		firstarg = proc->buff;
+	}
+	else {
+		proc->buff = NULL;
+	}
+
+	/* Parse arguments, +1 for the command itself */
+	char *argv[NASH_MAX_ARGS + 1];
+	uint8_t argc = 0;
+	argv[argc++] = exec->name;
+	if (firstarg != NULL) {
+		argv[argc++] = firstarg;
+		char *cursor = firstarg;
+		while (true) {
+			cursor = strchr(cursor, ' ');
+			if (cursor == NULL) {
+				break;
+			}
+			cursor[0] = NULL;
+			cursor++;
+			if (strlen(cursor) == 0) {
+				break;
+			}
+
+			if (argc == (NASH_MAX_ARGS + 1)) {
+				ERRORLN("Too many arguments");
+				return false;
+			}
+			argv[argc++] = cursor;
+		}
 	}
 	
-	/* Executable found */
+	/* Allocate proc->argv */
+	proc->argv = malloc(sizeof(char*) * argc);
+	if (proc->argv == NULL) {
+		ERRORLN("Out of memory");
+		return false;
+	}
+	memcpy(proc->argv, argv, sizeof(char*) * argc);
+	
 	/* Check for min max arguments */
-	uint8_t argc = cmd->argc - 1;
-	if ((argc < exec->minArgs) || (argc > exec->maxArgs)) {
-		Nash::printUsage(exec, true);
-		_printPrompt(cmd);
-		return;
+	uint8_t _argc = argc - 1;
+	if ((_argc < exec->minArgs) || (_argc > exec->maxArgs)) {
+		printUsage(exec, true);
+		return false;
 	}
-	
+
 	/* Check for -h/--help */
-	if ((exec->usage != NULL) && (cmd->argc == 2) && 
-			((strcmp(cmd->argv[1], "-h") == 0) || 
-			 (strcmp(cmd->argv[1], "--help") == 0))) {
+	if ((exec->usage != NULL) && (argc == 2) && 
+			((strcmp(proc->argv[1], "-h") == 0) || 
+			 (strcmp(proc->argv[1], "--help") == 0))) {
 		printUsage(exec, false);
-		_printPrompt(cmd);
-		return;
+		return false;
 	}
-	/* Executing */
+
+	/* Update process */
+	proc->argc = argc;
 	digitalWrite(_busyLED, ON);
-	_current.command = cmd;
-	_current.executable = exec;
-	_current.status = ALIVE;
-	_current.signal = NOSIGNAL;
-	_current.starttime = millis();
-	_current.inlen = 0;
+	proc->starttime = millis();
+	return true;
 }
 
 

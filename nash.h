@@ -52,27 +52,21 @@ public:
     /* Signal type */
     typedef uint8_t signal_t;
 
-    /* Command */
-    typedef struct {
-    	char buff[NASH_LINE_SIZE + 1];
-    	uint8_t argc;
-    	char **argv;
-    } Command;
-    
     struct executable;
 
     /* Process */
     typedef struct {
-        Command *command;
         struct executable *executable;
 
-    	int status;
+        char *buff;
+    	uint8_t argc;
+    	char **argv;
+
     	signal_t signal;
     	unsigned long starttime;
     	
     	/* Standard input */
-    	char input[NASH_LINE_SIZE + 1];
-    	uint8_t inlen;
+    	char *input;
     } Process;
 
     /* Executable */
@@ -81,7 +75,7 @@ public:
         const uint8_t minArgs;
         const uint8_t maxArgs;
         const char *usage;
-        int(*func)(uint8_t, char **, Process*);
+        int(*func)(Process*);
     } Executable;
 
     /* Constructor */
@@ -90,12 +84,11 @@ public:
     void init(Executable *programs);
     void loop();
     static void printUsage(Executable *exec, bool error);
-    void _printHelp();
 
 protected:
     
     Executable *_programs;
-    Process _current;
+    Process *_currentProcess;
     const char *_prompt;
     uint8_t _busyLED;
 
@@ -103,11 +96,11 @@ protected:
     char buff[NASH_LINE_SIZE];
     uint8_t bufflen = 0;
 
-    void _printPrompt(Command *cmd);
+    void _printHelp();
+    void _freeProcess();
     void _printPrompt();
-    signal_t _readline(const char **, uint8_t*);
-    Command* _newCommand(const char *line, uint8_t linelen);
-    void _execute(Command *cmd);
+    bool _newProcess();
+    signal_t _readline();
 };
 
 
