@@ -4,18 +4,18 @@
 Nash shell;
 
 
-//int8_t echo(uint8_t argc, char **argv, Nash::Process *self) {
-//	for (int i = 1; i < argc; i++) {
-//		PRINT(argv[i]);
-//		if (argc - i > 1) {
-//			PRINT(" ");
-//		}
-//	}
-//	PRINTLN();
-//	return EXIT_SUCCESS;
-//};
-//
-//
+int8_t echo(Nash::Process *self) {
+	for (int i = 1; i < self->argc; i++) {
+		PRINT(self->argv[i]);
+		if (self->argc - i > 1) {
+			PRINT(" ");
+		}
+	}
+	PRINTLN();
+	return EXIT_SUCCESS;
+};
+
+
 int8_t sleep(Nash::Process *self) {
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
@@ -45,7 +45,7 @@ int8_t cat(Nash::Process *self) {
 
 static Nash::Executable programs[] = {
 	{"free", 0, 0, NULL, printFreeMemory},
-	//{"echo", 0, NASH_MAX_ARGS, "[STRING]...", echo},
+	{"echo", 0, NASH_MAX_ARGS, "[STRING]...", echo},
 	{"sleep", 1, 1, "NUMBER", sleep},
 	{"cat", 0, 0, NULL, cat},
 	{NULL}

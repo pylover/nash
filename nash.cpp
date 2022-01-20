@@ -79,7 +79,7 @@ Nash::loop() {
 			/* we must use the line here and clean the buffer asap */
 			bufflen = 0;
 		}
-		else {
+		else if (_currentProcess == NULL) {
 			_printPrompt();
 		}
 	}
