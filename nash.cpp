@@ -184,6 +184,7 @@ Nash::_newProcess() {
 	}
 	
 	/* Find command */
+
 	Executable *exec = _programs;
 	while(exec->name != NULL) {
 		if (strcmp(exec->name, cmd) == 0) {
