@@ -41,7 +41,6 @@ Nash::_printPrompt() {
 	_freeProcess();
 	digitalWrite(_busyLED, OFF);
 	PRINT(prompt);
-	PRINT("# ");
 }
 
 
@@ -58,8 +57,10 @@ Nash::loop() {
 		}
 		if (status != ALIVE) {
 			/* Process has been terminated */
-			PRINT("Process has been terminated with exit code: ");
-			PRINTLN(status, DEC);
+			if (status == EXIT_FAILURE) {
+				PRINT("Process has been terminated with exit code: ");
+				PRINTLN(status, DEC);
+			}
 			_printPrompt();
 		}
 	}

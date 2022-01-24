@@ -13,7 +13,7 @@ int8_t echo(Nash::Process *self) {
 	}
 	PRINTLN();
 	return EXIT_SUCCESS;
-};
+}
 
 
 int8_t sleep(Nash::Process *self) {
@@ -41,6 +41,7 @@ int8_t cat(Nash::Process *self) {
 	}
 	return ALIVE;
 }
+
 
 static Nash::Executable programs[] = {
 	{"free", 0, 0, NULL, printFreeMemory},

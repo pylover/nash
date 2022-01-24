@@ -82,7 +82,7 @@ public:
     char *prompt;
 
     /* Constructor */
-    Nash(const char * prompt_ = "nash", uint8_t busyLED = LED_BUILTIN);
+    Nash(const char * prompt_ = "nash-$ ", uint8_t busyLED = LED_BUILTIN);
     
     void init(Executable *programs);
     void loop();

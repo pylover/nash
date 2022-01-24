@@ -24,7 +24,7 @@ make env
 
 ```bash
 make demo 
-make upload 
+make upload PORT=/dev/ttyACM0
 make screen
 ```
 
@@ -40,27 +40,26 @@ make clean demo upload screen
 #include "nash.h"
 
 
-int echo(size_t argc, char **argv, struct process *self) {
-	for (int i = 1; i < argc; i++) {
-		PRINT(argv[i]);
-		if (argc - i > 1) {
+Nash shell;
+
+
+int8_t echo(Nash::Process *self) {
+	for (int i = 1; i < self->argc; i++) {
+		PRINT(self->argv[i]);
+		if (self->argc - i > 1) {
 			PRINT(" ");
 		}
 	}
 	PRINTLN();
 	return EXIT_SUCCESS;
-};
+}
 
 
-int sleep(size_t argc, char **argv, struct process *self) {
-	if (argc != 2) {
-		ERRORLN("Invalid number of arguments");
-		return EXIT_FAILURE;
-	}
+int8_t sleep(Nash::Process *self) {
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
-	unsigned long towait = atol(argv[1]) * 1000;
+	unsigned long towait = atol(self->argv[1]) * 1000;
 	unsigned long taken = millis() - self->starttime;
 	if (taken < towait) {
 		return ALIVE;
@@ -69,41 +68,36 @@ int sleep(size_t argc, char **argv, struct process *self) {
 }
 
 
-int cat(size_t argc, char **argv, struct process *self) {
-	if (argc > 1) {
-		nash_print_usage(self->executable, true);
-		return EXIT_FAILURE;
-	}
+int8_t cat(Nash::Process *self) {
 	if (self->signal == SIG_INT) {
 		return EXIT_FAILURE;
 	}
 	else if (self->signal == SIG_EOF) {
 		return EXIT_SUCCESS;
 	}
-	if (self->inlen) {
+	if (self->input != NULL) {
 		PRINTLN(self->input);
-		self->inlen = 0;
 	}
 	return ALIVE;
 }
 
 
-static struct executable programs[] = {
-	{"help", NULL, nash_help},
-	{"free", NULL, nash_free},
-	{"echo", "[STRING]...", echo},
-	{"sleep", "NUMBER", sleep},
-	{"cat", NULL, cat},
-	{NULL, NULL, NULL}
+static Nash::Executable programs[] = {
+	{"free", 0, 0, NULL, printFreeMemory},
+	{"echo", 0, NASH_MAX_ARGS, "[STRING]...", echo},
+	{"sleep", 1, 1, "NUMBER", sleep},
+	{"cat", 0, 0, NULL, cat},
+	{NULL}
 };
 
 
 void setup() {
-	nash_init(programs);
+	Serial.begin(115200);
+	shell.init(programs);
 }
 
 
 void loop() {
-	nash_loop();	
+	shell.loop();
 }
 ```
