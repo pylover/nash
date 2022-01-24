@@ -42,7 +42,6 @@ int8_t cat(Nash::Process *self) {
 	return ALIVE;
 }
 
-
 static Nash::Executable programs[] = {
 	{"free", 0, 0, NULL, printFreeMemory},
 	{"echo", 0, NASH_MAX_ARGS, "[STRING]...", echo},

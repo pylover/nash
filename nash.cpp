@@ -1,8 +1,8 @@
 #include "nash.h"
 
 
-Nash::Nash(const char * prompt, uint8_t busyLED) {
-	_prompt = prompt;
+Nash::Nash(const char * prompt_, uint8_t busyLED) {
+	prompt = prompt_;
 	_busyLED = busyLED;	
 }
 
@@ -18,6 +18,7 @@ Nash::init(Executable *programs) {
 	/* Initial Prompt */
 	_printPrompt();
 }
+
 
 void 
 Nash::_freeProcess() {
@@ -39,9 +40,10 @@ void
 Nash::_printPrompt() {
 	_freeProcess();
 	digitalWrite(_busyLED, OFF);
-	PRINT(_prompt);
-	PRINT("$ ");
+	PRINT(prompt);
+	PRINT("# ");
 }
+
 
 
 void
@@ -56,6 +58,8 @@ Nash::loop() {
 		}
 		if (status != ALIVE) {
 			/* Process has been terminated */
+			PRINT("Process has been terminated with exit code: ");
+			PRINTLN(status, DEC);
 			_printPrompt();
 		}
 	}
@@ -140,7 +144,7 @@ Nash::_readline() {
 	return NOSIGNAL;
 }
 
-// TODO: Move it to another module
+
 char *trim(char *str) {
     char *end;
     while(isspace((unsigned char)*str)) {
@@ -158,6 +162,7 @@ char *trim(char *str) {
     end[1] = NULL;
     return str;
 }
+
 
 bool
 Nash::_newProcess() {
@@ -301,8 +306,8 @@ Nash::_printHelp() {
 	}
 	PRINTLN();
 }
- 
- 
+
+
 void 
 printFreeMemory() {
 	int free;
