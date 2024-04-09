@@ -5,6 +5,10 @@ ARCH = avr
 BOARD = uno
 FQBN = $(PACKAGER):$(ARCH):$(BOARD)
 
+
+all: demo
+
+
 .PHONY: env
 env:
 	arduino-cli core update-index
